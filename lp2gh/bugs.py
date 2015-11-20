@@ -1,5 +1,7 @@
 import re
 import urllib2
+import time
+import json
 
 import gflags
 import jsontemplate
@@ -39,6 +41,33 @@ BUG_IMPORTANCE = ['Critical',
                   'Undecided']
 
 
+MAX_RETRIES = 30
+def limit_retry(e, repo, try_block, catch_block=None, give_up_block=None):
+  retries = 0
+  while True:
+    try:
+      return try_block()
+    except urllib2.HTTPError as err:
+      if catch_block:
+        catch_block(err)
+      else:
+        e.emit('exception: %s' % err.read())
+      if retries >= MAX_RETRIES:
+        if give_up_block: give_up_block(err)
+        break
+      else:
+        retries = retries + 1
+        resp = repo.client.get("https://api.github.com/rate_limit")
+        d = json.loads(resp.read())
+        limits = (d["resources"]["core"]["remaining"], d["resources"]["core"]["reset"])
+        e.emit('current rate limits: %s' % str(limits))
+        if limits[0] > 0:
+          e.emit('sleeping quietly for %d minutes ...' % retries)
+          time.sleep(60 * retries)
+        else:
+          offset = limits[1] - int(time.time()) + 10
+          e.emit('rate limit reached - have to sleep for %d seconds' % offset)
+          time.sleep(offset)
 
 bug_matcher_re = re.compile(r'bug (\d+)')
 
@@ -191,12 +220,7 @@ def import_(repo, bugs, milestones_map=None):
       [labels.translate_label(tags_map[x.lower()]) for x in params['labels']]))
 
     e.emit('with params: %s' % params)
-    try:
-      rv = issues.append(**params)
-    except urllib2.HTTPError as err:
-      e.emit('exception: %s' % err.read())
-      raise
-
+    rv = limit_retry(e, repo, lambda: issues.append(**params))
     mapping[bug['id']] = rv['number']
 
   # second pass
@@ -212,11 +236,7 @@ def import_(repo, bugs, milestones_map=None):
     for msg in bug['comments']:
       # TODO(termie): username mapping
       by_line = '(by %s)' % msg['owner']
-      try:
-        comments.append(body='%s\n%s' % (by_line, msg['content']))
-      except urllib2.HTTPError as err:
-        e.emit('exception: %s' % err.read())
-        raise
+      limit_retry(e, repo, lambda: comments.append(body='%s\n%s' % (by_line, msg['content'])))
 
     # update the issue
     params = {'body': bug['description']}
@@ -228,11 +248,6 @@ def import_(repo, bugs, milestones_map=None):
     #               but does allow editing an existing bug
     if bug['milestone']:
       params['milestone'] = milestones_map[bug['milestone']]
-    try:
-      issue.update(params)
-    except urllib2.HTTPError as err:
-      e.emit('exception: %s' % err.read())
-      raise
-
+    limit_retry(e, repo, lambda: issue.update(params))
 
   return mapping
