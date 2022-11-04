@@ -1,4 +1,7 @@
 #!/usr/bin/env python
+from lp2gh import milestones
+from github3 import client
+import gflags
 import json
 import os
 import sys
@@ -12,22 +15,16 @@ if os.path.exists(os.path.join(POSSIBLE_TOPDIR, 'lp2gh', '__init__.py')):
     sys.path.insert(0, POSSIBLE_TOPDIR)
 
 
-import gflags
-from github3 import client
-
-from lp2gh import milestones
-
-
 FLAGS = gflags.FLAGS
 
 
 if __name__ == '__main__':
-  argv = FLAGS(sys.argv)
-  c = client.Client(FLAGS.username, FLAGS.password)
-  repo = c.repo(FLAGS.repo_user, FLAGS.repo_name)
-  data = json.load(open(argv[1]))
-  milestones_map = {}
-  if FLAGS.milestones_map:
-    milestones_map = json.load(open(FLAGS.milestones_map))
-  o = milestones.import_(repo, data, milestones_map=milestones_map)
-  print json.dumps(o, indent=2)
+    argv = FLAGS(sys.argv)
+    c = client.Client(FLAGS.username, FLAGS.token)
+    repo = c.repo(FLAGS.repo_user, FLAGS.repo_name)
+    data = json.load(open(argv[1]))
+    milestones_map = {}
+    if FLAGS.milestones_map:
+        milestones_map = json.load(open(FLAGS.milestones_map))
+    o = milestones.import_(repo, data, milestones_map=milestones_map)
+    print(json.dumps(o, indent=2))

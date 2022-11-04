@@ -1,9 +1,13 @@
 import time
+import re
 
 GH_DATE_FORMAT = '%Y-%m-%dT%H:%M:%SZ'
 
+
 def to_timestamp(dt):
-  tt = (dt.year, dt.month, dt.day,
-        dt.hour, dt.minute, dt.second,
-        dt.weekday(), 0, 0)
-  return dt.strftime(GH_DATE_FORMAT)
+    return dt.strftime(GH_DATE_FORMAT)
+
+def remove_mentions(str):
+    regex = r"([\s]+|^)(@)([^\s]+)"
+    subst = "\\g<1>**\\g<3>**"
+    return re.sub(regex, subst, str, 0, re.MULTILINE)

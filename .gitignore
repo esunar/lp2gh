@@ -1,0 +1,6 @@
+.history
+cachedir
+*.json
+.venv
+.idea
+**/__pycache__/**

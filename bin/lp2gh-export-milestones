@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from lp2gh import milestones
+import gflags
 import json
 import os
 import sys
@@ -12,17 +14,12 @@ if os.path.exists(os.path.join(POSSIBLE_TOPDIR, 'lp2gh', '__init__.py')):
     sys.path.insert(0, POSSIBLE_TOPDIR)
 
 
-import gflags
-
-from lp2gh import milestones
-
-
 FLAGS = gflags.FLAGS
 
 
 if __name__ == '__main__':
-  argv = FLAGS(sys.argv)
-  if not FLAGS.project and len(argv) > 1:
-    FLAGS.project = argv[1]
-  o = milestones.export(FLAGS.project)
-  print json.dumps(o, indent=2)
+    argv = FLAGS(sys.argv)
+    if not FLAGS.project and len(argv) > 1:
+        FLAGS.project = argv[1]
+    o = milestones.export(FLAGS.project)
+    print(json.dumps(o, indent=2))

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import tempfile
-import json
+
+import gflags
 import os
 import sys
 
@@ -11,29 +11,24 @@ POSSIBLE_TOPDIR = os.path.normpath(os.path.join(os.path.abspath(sys.argv[0]),
 if os.path.exists(os.path.join(POSSIBLE_TOPDIR, 'lp2gh', '__init__.py')):
     sys.path.insert(0, POSSIBLE_TOPDIR)
 
-import gflags
+from lp2gh import bugs, milestones
 from github3 import client
 
-from lp2gh import bugs, milestones
 FLAGS = gflags.FLAGS
 
 if __name__ == '__main__':
-  argv = FLAGS(sys.argv)
-  if not FLAGS.project:
-      FLAGS.project = sys.argv[1]
+    argv = FLAGS(sys.argv)
+    if not FLAGS.project:
+        FLAGS.project = sys.argv[1]
 
-  c = client.Client(FLAGS.username, FLAGS.password)
-  repo = c.repo(FLAGS.repo_user, FLAGS.repo_name)
-  bugs.import_(
-      repo,
-      bugs.export(FLAGS.project),
-      milestones_map=milestones.import_(
-          repo,
-          milestones.export(FLAGS.project),
-          milestones_map={}
-      )
-  )
-
-  if FLAGS.project:
-      sys.argv[1] = FLAGS.project
-  exec open(os.path.join(BINDIR, "lp2gh-export-branches")).read()
+    c = client.Client(FLAGS.username, FLAGS.token)
+    repo = c.repo(FLAGS.repo_user, FLAGS.repo_name)
+    bugs.import_(
+        repo=repo,
+        milestones_map=milestones.import_(
+            repo,
+            milestones.export(FLAGS.project),
+            milestones_map={}
+        ),
+        bugs=bugs.export(FLAGS.project)
+    )
