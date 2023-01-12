@@ -16,6 +16,7 @@ gflags.DEFINE_string('bugs_map', None,
                      'file with mapping data for bugs')
 gflags.DEFINE_string('blueprints_map', None,
                      'file with mapping data for blueprints')
+gflags.DEFINE_boolean('lp_login', False, 'login to launchpad to access private projects')
 
 
 class Client():
@@ -28,8 +29,12 @@ class Client():
             cachedir = os.path.abspath('./cachedir')
             if not os.path.exists(cachedir):
                 os.mkdir(cachedir)
-            lp = launchpad.Launchpad.login_anonymously(
-                'lp2gh', 'production', cachedir, version='devel')
+            if FLAGS.lp_login:
+                lp = launchpad.Launchpad.login_with(
+                    'lp2gh', 'production', cachedir, version='devel')
+            else:
+                lp = launchpad.Launchpad.login_anonymously(
+                    'lp2gh', 'production', cachedir, version='devel')
             self.__conn = lp
         return self.__conn
 

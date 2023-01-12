@@ -1,1 +1,6 @@
 python-gflags
+six
+jinja2
+requests
+keyring
+launchpadlib
